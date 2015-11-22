@@ -34,25 +34,36 @@ int main(int argc, char **argv)
     if (rank == 0) {
         /* Wczytywanie liczb do posortowania z pliku podanego jako pierwszy argument */
         printf("Otwieram plik\n");
-	FILE *f;int i;
-	f = fopen(argv[1],"r");
-	for (i=0;i<TABSIZE;i++) fscanf(f, "%d", &(tablica[i]));
-	for (i=0;i<TABSIZE;i++) printf("%d ", (tablica[i]));
+	    FILE *f;
+	    int i;
+	    f = fopen(argv[1], "r");
+	    for (i=0;i<TABSIZE;i++) {
+	        fscanf(f, "%d", &(tablica[i]));
+	    }
+	    for (i=0;i<TABSIZE;i++) {
+	        //printf("%d ", (tablica[i]));
+	    }
 
         max=tablica[0];
         printf("\n------------\n");
         /**/
 
         /* Tutaj wstaw wysyłanie liczb do bezpośrednich następników wierzchołka */
-	printf("%d: Wczytuje %d, wysylam\n", rank, max);
+    	printf("%d: Wczytuje %d, wysylam\n", rank, max);
+#define BATCH_SIZE 10    	
         for (i=1;i<TABSIZE;i++) {
             // MPI_SEND( &(tablica[i]).....
+            int address = (i/BATCH_SIZE) % (size-1) + 1;
+            
+//            printf("%d\n", address);
+            MPI_Send(&tablica[i], 1, MPI_INT, address, SORT, MPI_COMM_WORLD);
             //MPI_SEND( skąd, ile, typ, do kogo, z jakim tagiem, MPI_COMM_WORLD)
         }
+        printf("%d\n", TABSIZE);
         /**/
         /* Zawiadamiamy, że więcej liczb do wysyłania nie będzie*/
         int dummy=-1;
-	MPI_Send( &dummy, 1, MPI_INT, 1, END, MPI_COMM_WORLD); //koniec liczb
+	    MPI_Send( &dummy, 1, MPI_INT, 1, END, MPI_COMM_WORLD); //koniec liczb
 
         /* Tutaj wstaw odbieranie posortowanych liczb */
         for (i=1;i<size-1;i++) {
@@ -61,7 +72,7 @@ int main(int argc, char **argv)
 
         /* Wyświetlanie posortowanej tablicy */
         for (i=0;i<TABSIZE-(size-1);i++) {
-            printf("%d ",sorted[i]);
+//            printf("%d ",sorted[i]);
         }
         printf("\n");
 
