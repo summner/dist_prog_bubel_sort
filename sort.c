@@ -2,6 +2,7 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #define SORT 1
 #define END 2
 #define TABSIZE 10000
@@ -13,6 +14,8 @@ int main(int argc, char **argv)
     int size,rank;
     int tablica[TABSIZE]={0};
     int sorted[TABSIZE]={-1};
+    memset(sorted, -1, TABSIZE);
+    
     int max=-1;
     int tmp=-1;
     int i;
@@ -53,10 +56,10 @@ int main(int argc, char **argv)
 #define BATCH_SIZE 10    	
         for (i=1;i<TABSIZE;i++) {
             // MPI_SEND( &(tablica[i]).....
-            int address = (i/BATCH_SIZE) % (size-1) + 1;
+           // int address = (i/BATCH_SIZE) % (size-1) + 1;
             
 //            printf("%d\n", address);
-            MPI_Send(&tablica[i], 1, MPI_INT, address, SORT, MPI_COMM_WORLD);
+            MPI_Send(&tablica[i], 1, MPI_INT, 1, SORT, MPI_COMM_WORLD);
             //MPI_SEND( skąd, ile, typ, do kogo, z jakim tagiem, MPI_COMM_WORLD)
         }
         printf("%d\n", TABSIZE);
@@ -68,34 +71,74 @@ int main(int argc, char **argv)
         /* Tutaj wstaw odbieranie posortowanych liczb */
         for (i=1;i<size-1;i++) {
 	//    MPI_Recv( gdzie, ile , jakiego typu, od kogo, z jakim tagiem, MPI_COMM_WORLD, &status);
+		    MPI_Recv(&sorted[i-1], BATCH_SIZE , MPI_INT, i, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
         }
 
         /* Wyświetlanie posortowanej tablicy */
         for (i=0;i<TABSIZE-(size-1);i++) {
-//            printf("%d ",sorted[i]);
+            printf("%d ",sorted[i]);
+            if (sorted[i] == -1) break;
         }
         printf("\n");
 
     } else if (rank==size-1) { //LISC 
-        while (!end) {
-	    MPI_Recv(&tmp, 1, MPI_INT, rank-1, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
-	    if (status.MPI_TAG==END) {
-		end=1;
-	     // cos jeszcze?
-	    } else {
-	    //cos jeszcze?
-	    } 
+        int cnt = 0;
+                printf("Rank: %d %d\n", rank, cnt);        
+        while (!end) {      
+	        MPI_Recv(&tmp, 1, MPI_INT, rank-1, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+	        cnt++;
+	        if (status.MPI_TAG==END) {
+		        end=1;
+	             // cos jeszcze?
+	        } else {
+    	        //cos jeszcze?
+	        } 
         }
+        printf("Last Rank: %d %d\n", rank, cnt);        
     } else { //Ani wierzchołek, ani liść
+        int cnt = 0;
+      
+        int tmp_two;
         while (!end) {
-	    MPI_Recv(&tmp, 1, MPI_INT, rank-1, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
-	    if (status.MPI_TAG==END) {
-		end=1;
-		//coś jeszcze?
-	    } else {
-		//sortowanie babelkowe
-	    }
+    	    MPI_Recv(&tmp, 1, MPI_INT, rank-1, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+	        if (status.MPI_TAG==END) {
+	        	end=1;
+
+	        	//coś jeszcze?
+	        } else {
+	            cnt +=1;
+	            for(int i=0; i< BATCH_SIZE; i++){
+	                if (sorted[i] == -1){
+	                    sorted[i] = tmp;
+	                    tmp = -1;
+	                    break;
+	                } else {
+                        if (sorted[i] > tmp){
+                            tmp_two = sorted[i];
+                            sorted[i]=tmp;
+                            tmp = tmp_two;
+                        }	                
+	                }
+	            }
+	            if (tmp != -1){
+    	            MPI_Send(&tmp, 1, MPI_INT, rank+1, SORT, MPI_COMM_WORLD);
+	            }
+	        	//sortowanie babelkowe
+	        }
+
         }
+        int elements = 0;
+        for(int i=0; i< BATCH_SIZE; i++){
+            if (sorted[i] == -1){
+                break;
+            }
+            elements ++;
+
+            //printf("%d ", sorted[i]);
+        }
+        MPI_Send(sorted, elements, MPI_INT, 0, END, MPI_COMM_WORLD);
+        printf("\nRank: %d %d\n", rank, cnt);
+        MPI_Send(&tmp, 1, MPI_INT, rank+1, END, MPI_COMM_WORLD);
     }
    
     MPI_Finalize();
