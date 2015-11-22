@@ -7,7 +7,7 @@
 #define END 2
 #define TABSIZE 10000
 
-int bubel_sort(int rank, int tmp, int batch_size, int sorted[]){
+int bubel_sort(int tmp, int batch_size, int sorted[]){
     int tmp_two;
     for(int i=0; i< batch_size; i++){
         if (sorted[i] == -1){
@@ -87,9 +87,9 @@ int main(int argc, char **argv)
 	    MPI_Send( &dummy, 1, MPI_INT, 1, END, MPI_COMM_WORLD); //koniec liczb
 
         /* Tutaj wstaw odbieranie posortowanych liczb */
-        for (i=1;i<size-1;i++) {
+        for (i=1;i<size;i++) {
 	//    MPI_Recv( gdzie, ile , jakiego typu, od kogo, z jakim tagiem, MPI_COMM_WORLD, &status);
-		    MPI_Recv(&sorted[i-1], BATCH_SIZE , MPI_INT, i, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+		    MPI_Recv(&sorted[(i-1)*10], BATCH_SIZE , MPI_INT, i, END, MPI_COMM_WORLD, &status);
         }
 
         /* Wyświetlanie posortowanej tablicy */
@@ -109,13 +109,14 @@ int main(int argc, char **argv)
 		        end=1;
 	             // cos jeszcze?
 	        } else {
-                tmp = bubel_sort(rank, tmp, BATCH_SIZE, sorted);	            
+                tmp = bubel_sort(tmp, BATCH_SIZE, sorted);	            
                 if (tmp != -1){
                     printf("erroorr\n");
                     end=1;
                 }
 	        } 
         }
+        MPI_Send(sorted, BATCH_SIZE, MPI_INT, 0, END, MPI_COMM_WORLD);
         printf("Last Rank: %d %d\n", rank, cnt);        
     } else { //Ani wierzchołek, ani liść
         int cnt = 0;
@@ -129,7 +130,7 @@ int main(int argc, char **argv)
 	        	//coś jeszcze?
 	        } else {
 	            cnt +=1;
-                tmp = bubel_sort(rank, tmp, BATCH_SIZE, sorted);	            
+                tmp = bubel_sort(tmp, BATCH_SIZE, sorted);	            
                 if (tmp != -1){
                     MPI_Send(&tmp, 1, MPI_INT, rank+1, SORT, MPI_COMM_WORLD);
                 }
