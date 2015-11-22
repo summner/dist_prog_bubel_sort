@@ -7,6 +7,26 @@
 #define END 2
 #define TABSIZE 10000
 
+void bubel_sort(int rank, int tmp, int batch_size, int sorted[]){
+    int tmp_two;
+    for(int i=0; i< batch_size; i++){
+        if (sorted[i] == -1){
+            sorted[i] = tmp;
+            tmp = -1;
+            break;
+        } else {
+            if (sorted[i] > tmp){
+                tmp_two = sorted[i];
+                sorted[i]=tmp;
+                tmp = tmp_two;
+            }	                
+        }
+    }
+    if (tmp != -1){
+        MPI_Send(&tmp, 1, MPI_INT, rank+1, SORT, MPI_COMM_WORLD);
+    }
+}
+
 int main(int argc, char **argv)
 {
     MPI_Init(&argc, &argv);
@@ -107,22 +127,7 @@ int main(int argc, char **argv)
 	        	//coś jeszcze?
 	        } else {
 	            cnt +=1;
-	            for(int i=0; i< BATCH_SIZE; i++){
-	                if (sorted[i] == -1){
-	                    sorted[i] = tmp;
-	                    tmp = -1;
-	                    break;
-	                } else {
-                        if (sorted[i] > tmp){
-                            tmp_two = sorted[i];
-                            sorted[i]=tmp;
-                            tmp = tmp_two;
-                        }	                
-	                }
-	            }
-	            if (tmp != -1){
-    	            MPI_Send(&tmp, 1, MPI_INT, rank+1, SORT, MPI_COMM_WORLD);
-	            }
+                bubel_sort(rank, tmp, BATCH_SIZE, sorted);	            
 	        	//sortowanie babelkowe
 	        }
 
