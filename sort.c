@@ -41,6 +41,12 @@ int main(int argc, char **argv)
     MPI_Status status;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
+    
+    int BATCH_SIZE = TABSIZE/(size-1);
+    if (TABSIZE % (size-1) > 0){
+        BATCH_SIZE++;
+    }
+//    BATCH_SIZE=10;
 
     if (argc<2) {
 	    MPI_Finalize();
@@ -71,13 +77,9 @@ int main(int argc, char **argv)
 
         /* Tutaj wstaw wysyłanie liczb do bezpośrednich następników wierzchołka */
     	printf("%d: Wczytuje %d, wysylam\n", rank, max);
-#define BATCH_SIZE 10    	
+        
         for (i=1;i<TABSIZE;i++) {
-            // MPI_SEND( &(tablica[i]).....
-           // int address = (i/BATCH_SIZE) % (size-1) + 1;
-            
-//            printf("%d\n", address);
-            MPI_Send(&tablica[i], 1, MPI_INT, 1, SORT, MPI_COMM_WORLD);
+             MPI_Send(&tablica[i], 1, MPI_INT, 1, SORT, MPI_COMM_WORLD);
             //MPI_SEND( skąd, ile, typ, do kogo, z jakim tagiem, MPI_COMM_WORLD)
         }
         printf("%d\n", TABSIZE);
@@ -89,7 +91,7 @@ int main(int argc, char **argv)
         /* Tutaj wstaw odbieranie posortowanych liczb */
         for (i=1;i<size;i++) {
 	//    MPI_Recv( gdzie, ile , jakiego typu, od kogo, z jakim tagiem, MPI_COMM_WORLD, &status);
-		    MPI_Recv(&sorted[(i-1)*10], BATCH_SIZE , MPI_INT, i, END, MPI_COMM_WORLD, &status);
+		    MPI_Recv(&sorted[(i-1)*BATCH_SIZE], BATCH_SIZE , MPI_INT, i, END, MPI_COMM_WORLD, &status);
         }
 
         /* Wyświetlanie posortowanej tablicy */
