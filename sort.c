@@ -7,7 +7,7 @@
 #define END 2
 #define TABSIZE 10000
 
-void bubel_sort(int rank, int tmp, int batch_size, int sorted[]){
+int bubel_sort(int rank, int tmp, int batch_size, int sorted[]){
     int tmp_two;
     for(int i=0; i< batch_size; i++){
         if (sorted[i] == -1){
@@ -21,10 +21,8 @@ void bubel_sort(int rank, int tmp, int batch_size, int sorted[]){
                 tmp = tmp_two;
             }	                
         }
-    }
-    if (tmp != -1){
-        MPI_Send(&tmp, 1, MPI_INT, rank+1, SORT, MPI_COMM_WORLD);
-    }
+    }    
+    return tmp;
 }
 
 int main(int argc, char **argv)
@@ -111,7 +109,11 @@ int main(int argc, char **argv)
 		        end=1;
 	             // cos jeszcze?
 	        } else {
-    	        //cos jeszcze?
+                tmp = bubel_sort(rank, tmp, BATCH_SIZE, sorted);	            
+                if (tmp != -1){
+                    printf("erroorr\n");
+                    end=1;
+                }
 	        } 
         }
         printf("Last Rank: %d %d\n", rank, cnt);        
@@ -127,21 +129,16 @@ int main(int argc, char **argv)
 	        	//coś jeszcze?
 	        } else {
 	            cnt +=1;
-                bubel_sort(rank, tmp, BATCH_SIZE, sorted);	            
+                tmp = bubel_sort(rank, tmp, BATCH_SIZE, sorted);	            
+                if (tmp != -1){
+                    MPI_Send(&tmp, 1, MPI_INT, rank+1, SORT, MPI_COMM_WORLD);
+                }
 	        	//sortowanie babelkowe
 	        }
 
         }
-        int elements = 0;
-        for(int i=0; i< BATCH_SIZE; i++){
-            if (sorted[i] == -1){
-                break;
-            }
-            elements ++;
 
-            //printf("%d ", sorted[i]);
-        }
-        MPI_Send(sorted, elements, MPI_INT, 0, END, MPI_COMM_WORLD);
+        MPI_Send(sorted, BATCH_SIZE, MPI_INT, 0, END, MPI_COMM_WORLD);
         printf("\nRank: %d %d\n", rank, cnt);
         MPI_Send(&tmp, 1, MPI_INT, rank+1, END, MPI_COMM_WORLD);
     }
